@@ -1149,7 +1149,7 @@ func (fs *FSObjects) putObject(ctx context.Context, bucket string, object string
 	fsNSObjPath := pathJoin(fs.fsPath, bucket, object)
 	var overwrite bool
 	// Allow overwrites to internal buckets
-	if strings.HasPrefix(bucket, ".minio.sys") {
+	if strings.HasPrefix(bucket, minioMetaBucket) {
 		overwrite = true
 	}
 	if err = fsRenameFile(ctx, fsTmpObjPath, fsNSObjPath, overwrite); err != nil {
