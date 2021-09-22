@@ -173,7 +173,7 @@ func linkAll(srcFilePath, dstFilePath string) (err error) {
 		return err
 	}
 
-	if err = Link(srcFilePath, dstFilePath); err != nil {
+	if err = reliableLink(srcFilePath, dstFilePath); err != nil {
 		switch {
 		case isSysErrNotDir(err) && !osIsNotExist(err):
 			// Windows can have both isSysErrNotDir(err) and osIsNotExist(err) returning
@@ -199,7 +199,7 @@ func linkAll(srcFilePath, dstFilePath string) (err error) {
 	return nil
 }
 
-// Reliably retries os.RenameAll if for some reason os.RenameAll returns
+// Reliably retries renameAll if for some reason Rename returns
 // syscall.ENOENT (parent does not exist).
 func reliableRename(srcFilePath, dstFilePath string) (err error) {
 	if err = reliableMkdirAll(path.Dir(dstFilePath), 0777); err != nil {
@@ -209,6 +209,27 @@ func reliableRename(srcFilePath, dstFilePath string) (err error) {
 	for {
 		// After a successful parent directory create attempt a renameAll.
 		if err = Rename(srcFilePath, dstFilePath); err != nil {
+			// Retry only for the first retryable error.
+			if osIsNotExist(err) && i == 0 {
+				i++
+				continue
+			}
+		}
+		break
+	}
+	return err
+}
+
+// Reliably retries linkAll if for some reason Link returns
+// syscall.ENOENT (parent does not exist).
+func reliableLink(srcFilePath, dstFilePath string) (err error) {
+	if err = reliableMkdirAll(path.Dir(dstFilePath), 0777); err != nil {
+		return err
+	}
+	i := 0
+	for {
+		// After a successful parent directory create attempt a linkAll.
+		if err = Link(srcFilePath, dstFilePath); err != nil {
 			// Retry only for the first retryable error.
 			if osIsNotExist(err) && i == 0 {
 				i++
