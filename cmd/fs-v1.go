@@ -1147,7 +1147,12 @@ func (fs *FSObjects) putObject(ctx context.Context, bucket string, object string
 
 	// Entire object was written to the temp location, now it's safe to rename it to the actual location.
 	fsNSObjPath := pathJoin(fs.fsPath, bucket, object)
-	if err = fsRenameFile(ctx, fsTmpObjPath, fsNSObjPath); err != nil {
+	var overwrite bool
+	// Allow overwrites to internal buckets
+	if strings.HasPrefix(bucket, ".minio.sys") {
+		overwrite = true
+	}
+	if err = fsRenameFile(ctx, fsTmpObjPath, fsNSObjPath, overwrite); err != nil {
 		return ObjectInfo{}, toObjectErr(err, bucket, object)
 	}
 

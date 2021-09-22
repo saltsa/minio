@@ -344,22 +344,20 @@ func fsCreateFile(ctx context.Context, filePath string, reader io.Reader, falloc
 }
 
 // Renames source path to destination path, creates all the
-// missing parents if they don't exist.
-func fsRenameFile(ctx context.Context, sourcePath, destPath string) error {
-	if err := checkPathLength(sourcePath); err != nil {
-		logger.LogIf(ctx, err)
-		return err
-	}
-	if err := checkPathLength(destPath); err != nil {
-		logger.LogIf(ctx, err)
-		return err
-	}
+// missing parents if they don't exist. Errors if destPath exists.
+func fsRenameFile(ctx context.Context, sourcePath, destPath string, overwrite bool) error {
 
-	if err := renameAll(sourcePath, destPath); err != nil {
-		logger.LogIf(ctx, err)
-		return err
+	if overwrite {
+		if err := renameAll(sourcePath, destPath); err != nil {
+			logger.LogIf(ctx, err)
+			return err
+		}
+	} else {
+		if err := linkAll(sourcePath, destPath); err != nil {
+			logger.LogIf(ctx, err)
+			return err
+		}
 	}
-
 	return nil
 }
 
@@ -468,7 +466,7 @@ func fsRemoveMeta(ctx context.Context, basePath, deletePath, tmpDir string) erro
 
 		tmpPath := pathJoin(tmpDir, mustGetUUID())
 
-		fsRenameFile(ctx, deletePath, tmpPath)
+		fsRenameFile(ctx, deletePath, tmpPath, true)
 
 		// Proceed to deleting the directory if empty
 		fsDeleteFile(ctx, basePath, pathutil.Dir(deletePath))

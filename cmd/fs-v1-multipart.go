@@ -765,7 +765,7 @@ func (fs *FSObjects) CompleteMultipartUpload(ctx context.Context, bucket string,
 		return oi, toObjectErr(err, bucket, object)
 	}
 
-	err = fsRenameFile(ctx, appendFilePath, pathJoin(fs.fsPath, bucket, object))
+	err = fsRenameFile(ctx, appendFilePath, pathJoin(fs.fsPath, bucket, object), false)
 	if err != nil {
 		logger.LogIf(ctx, err)
 		return oi, toObjectErr(err, bucket, object)

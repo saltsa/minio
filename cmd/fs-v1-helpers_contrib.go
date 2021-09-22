@@ -18,7 +18,6 @@ package cmd
 
 import (
 	"context"
-	"os"
 
 	"github.com/minio/minio/internal/logger"
 )
@@ -35,7 +34,7 @@ func fsSimpleRenameFile(ctx context.Context, sourcePath, destPath string) error 
 		return err
 	}
 
-	if err := os.Rename(sourcePath, destPath); err != nil {
+	if err := Rename(sourcePath, destPath); err != nil {
 		logger.LogIf(ctx, err)
 		return osErrToFileErr(err)
 	}

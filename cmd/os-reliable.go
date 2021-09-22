@@ -160,6 +160,45 @@ func renameAll(srcFilePath, dstFilePath string) (err error) {
 	return nil
 }
 
+// Wrapper function to Link (os.Link and os.Remove)
+func linkAll(srcFilePath, dstFilePath string) (err error) {
+	if srcFilePath == "" || dstFilePath == "" {
+		return errInvalidArgument
+	}
+
+	if err = checkPathLength(srcFilePath); err != nil {
+		return err
+	}
+	if err = checkPathLength(dstFilePath); err != nil {
+		return err
+	}
+
+	if err = Link(srcFilePath, dstFilePath); err != nil {
+		switch {
+		case isSysErrNotDir(err) && !osIsNotExist(err):
+			// Windows can have both isSysErrNotDir(err) and osIsNotExist(err) returning
+			// true if the source file path contains an inexistant directory. In that case,
+			// we want to return errFileNotFound instead, which will honored in subsequent
+			// switch cases
+			return errFileAccessDenied
+		case isSysErrPathNotFound(err):
+			// This is a special case should be handled only for
+			// windows, because windows API does not return "not a
+			// directory" error message. Handle this specifically here.
+			return errFileAccessDenied
+		case isSysErrCrossDevice(err):
+			return fmt.Errorf("%w (%s)->(%s)", errCrossDeviceLink, srcFilePath, dstFilePath)
+		case osIsNotExist(err):
+			return errFileNotFound
+		case osIsExist(err):
+			return errFileAccessDenied
+		default:
+			return err
+		}
+	}
+	return nil
+}
+
 // Reliably retries os.RenameAll if for some reason os.RenameAll returns
 // syscall.ENOENT (parent does not exist).
 func reliableRename(srcFilePath, dstFilePath string) (err error) {
