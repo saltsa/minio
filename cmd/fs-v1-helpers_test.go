@@ -39,16 +39,16 @@ func TestFSRenameFile(t *testing.T) {
 	if err = fsMkdir(GlobalContext, pathJoin(path, "testvolume1")); err != nil {
 		t.Fatal(err)
 	}
-	if err = fsRenameFile(GlobalContext, pathJoin(path, "testvolume1"), pathJoin(path, "testvolume2")); err != nil {
+	if err = fsRenameFile(GlobalContext, pathJoin(path, "testvolume1"), pathJoin(path, "testvolume2"), false); err != nil {
 		t.Fatal(err)
 	}
-	if err = fsRenameFile(GlobalContext, pathJoin(path, "testvolume1"), pathJoin(path, "testvolume2")); err != errFileNotFound {
+	if err = fsRenameFile(GlobalContext, pathJoin(path, "testvolume1"), pathJoin(path, "testvolume2"), false); err != errFileNotFound {
 		t.Fatal(err)
 	}
-	if err = fsRenameFile(GlobalContext, pathJoin(path, "my-obj-del-0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001"), pathJoin(path, "testvolume2")); err != errFileNameTooLong {
+	if err = fsRenameFile(GlobalContext, pathJoin(path, "my-obj-del-0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001"), pathJoin(path, "testvolume2"), false); err != errFileNameTooLong {
 		t.Fatal("Unexpected error", err)
 	}
-	if err = fsRenameFile(GlobalContext, pathJoin(path, "testvolume1"), pathJoin(path, "my-obj-del-0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001")); err != errFileNameTooLong {
+	if err = fsRenameFile(GlobalContext, pathJoin(path, "testvolume1"), pathJoin(path, "my-obj-del-0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001"), false); err != errFileNameTooLong {
 		t.Fatal("Unexpected error", err)
 	}
 }

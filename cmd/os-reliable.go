@@ -160,7 +160,46 @@ func renameAll(srcFilePath, dstFilePath string) (err error) {
 	return nil
 }
 
-// Reliably retries os.RenameAll if for some reason os.RenameAll returns
+// Wrapper function to Link (os.Link and os.Remove)
+func linkAll(srcFilePath, dstFilePath string) (err error) {
+	if srcFilePath == "" || dstFilePath == "" {
+		return errInvalidArgument
+	}
+
+	if err = checkPathLength(srcFilePath); err != nil {
+		return err
+	}
+	if err = checkPathLength(dstFilePath); err != nil {
+		return err
+	}
+
+	if err = reliableLink(srcFilePath, dstFilePath); err != nil {
+		switch {
+		case isSysErrNotDir(err) && !osIsNotExist(err):
+			// Windows can have both isSysErrNotDir(err) and osIsNotExist(err) returning
+			// true if the source file path contains an inexistant directory. In that case,
+			// we want to return errFileNotFound instead, which will honored in subsequent
+			// switch cases
+			return errFileAccessDenied
+		case isSysErrPathNotFound(err):
+			// This is a special case should be handled only for
+			// windows, because windows API does not return "not a
+			// directory" error message. Handle this specifically here.
+			return errFileAccessDenied
+		case isSysErrCrossDevice(err):
+			return fmt.Errorf("%w (%s)->(%s)", errCrossDeviceLink, srcFilePath, dstFilePath)
+		case osIsNotExist(err):
+			return errFileNotFound
+		case osIsExist(err):
+			return errFileAccessDenied
+		default:
+			return err
+		}
+	}
+	return nil
+}
+
+// Reliably retries renameAll if for some reason Rename returns
 // syscall.ENOENT (parent does not exist).
 func reliableRename(srcFilePath, dstFilePath string) (err error) {
 	if err = reliableMkdirAll(path.Dir(dstFilePath), 0777); err != nil {
@@ -170,6 +209,27 @@ func reliableRename(srcFilePath, dstFilePath string) (err error) {
 	for {
 		// After a successful parent directory create attempt a renameAll.
 		if err = Rename(srcFilePath, dstFilePath); err != nil {
+			// Retry only for the first retryable error.
+			if osIsNotExist(err) && i == 0 {
+				i++
+				continue
+			}
+		}
+		break
+	}
+	return err
+}
+
+// Reliably retries linkAll if for some reason Link returns
+// syscall.ENOENT (parent does not exist).
+func reliableLink(srcFilePath, dstFilePath string) (err error) {
+	if err = reliableMkdirAll(path.Dir(dstFilePath), 0777); err != nil {
+		return err
+	}
+	i := 0
+	for {
+		// After a successful parent directory create attempt a linkAll.
+		if err = Link(srcFilePath, dstFilePath); err != nil {
 			// Retry only for the first retryable error.
 			if osIsNotExist(err) && i == 0 {
 				i++
